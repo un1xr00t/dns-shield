@@ -1,0 +1,251 @@
+{
+  "name": "Server Security Alerts",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "server-alert",
+        "options": {}
+      },
+      "id": "webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 400]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.type }}",
+                    "rightValue": "ssh_login",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "SSH Login"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.type }}",
+                    "rightValue": "fail2ban",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Fail2ban"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.type }}",
+                    "rightValue": "unknown_host",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Unknown Host"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.type }}",
+                    "rightValue": "daily_summary",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Daily Summary"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "switch",
+      "name": "Route by Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [450, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "YOUR_DISCORD_WEBHOOK_URL",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\"embeds\": [{ \"title\": \"🔐 SSH Login Alert\", \"description\": $json.body.message, \"color\": 3447003, \"fields\": [ { \"name\": \"User\", \"value\": $json.body.user || \"unknown\", \"inline\": true }, { \"name\": \"IP\", \"value\": $json.body.ip || \"unknown\", \"inline\": true }, { \"name\": \"Time\", \"value\": $json.body.timestamp || \"unknown\", \"inline\": true } ], \"footer\": { \"text\": \"Server Alert\" } }]} }}",
+        "options": {}
+      },
+      "id": "discord-ssh",
+      "name": "Discord SSH",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [700, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "YOUR_DISCORD_WEBHOOK_URL",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\"embeds\": [{ \"title\": \"🚫 IP Banned\", \"description\": $json.body.message, \"color\": 15158332, \"fields\": [ { \"name\": \"IP\", \"value\": $json.body.ip || \"unknown\", \"inline\": true }, { \"name\": \"Jail\", \"value\": $json.body.jail || \"unknown\", \"inline\": true }, { \"name\": \"Time\", \"value\": $json.body.timestamp || \"unknown\", \"inline\": true } ], \"footer\": { \"text\": \"Server Alert\" } }]} }}",
+        "options": {}
+      },
+      "id": "discord-fail2ban",
+      "name": "Discord Fail2ban",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [700, 350]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "YOUR_DISCORD_WEBHOOK_URL",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\"embeds\": [{ \"title\": \"🌐 DNS Pointing Attempt\", \"description\": $json.body.message, \"color\": 16776960, \"fields\": [ { \"name\": \"IP\", \"value\": $json.body.ip || \"unknown\", \"inline\": true }, { \"name\": \"Host Header\", \"value\": $json.body.host || \"unknown\", \"inline\": true }, { \"name\": \"Time\", \"value\": $json.body.timestamp || \"unknown\", \"inline\": true } ], \"footer\": { \"text\": \"Server Alert\" } }]} }}",
+        "options": {}
+      },
+      "id": "discord-unknown-host",
+      "name": "Discord Unknown Host",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [700, 500]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "YOUR_DISCORD_WEBHOOK_URL",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\"embeds\": [{ \"title\": \"📊 Daily Security Summary\", \"description\": \"24-hour security report\", \"color\": 5763719, \"fields\": [ { \"name\": \"Failed SSH\", \"value\": String($json.body.failed_ssh || 0), \"inline\": true }, { \"name\": \"SSH Bans\", \"value\": String($json.body.sshd_bans || 0), \"inline\": true }, { \"name\": \"Bot Bans\", \"value\": String($json.body.bot_bans || 0), \"inline\": true }, { \"name\": \"DNS Attempts\", \"value\": String($json.body.unknown_hosts || 0), \"inline\": true }, { \"name\": \"Total Requests\", \"value\": String($json.body.total_requests || 0), \"inline\": true }, { \"name\": \"Blocked\", \"value\": String($json.body.blocked_requests || 0), \"inline\": true } ], \"footer\": { \"text\": \"Server Alert\" } }]} }}",
+        "options": {}
+      },
+      "id": "discord-daily",
+      "name": "Discord Daily Summary",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [700, 650]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "YOUR_DISCORD_WEBHOOK_URL",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\"embeds\": [{ \"title\": \"⚠️ Server Alert\", \"description\": $json.body.message || \"Alert triggered\", \"color\": 9807270, \"fields\": [ { \"name\": \"Type\", \"value\": $json.body.type || \"general\", \"inline\": true }, { \"name\": \"Time\", \"value\": $json.body.timestamp || \"unknown\", \"inline\": true } ], \"footer\": { \"text\": \"Server Alert\" } }]} }}",
+        "options": {}
+      },
+      "id": "discord-general",
+      "name": "Discord General",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [700, 800]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Route by Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Type": {
+      "main": [
+        [
+          {
+            "node": "Discord SSH",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Discord Fail2ban",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Discord Unknown Host",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Discord Daily Summary",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Discord General",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
