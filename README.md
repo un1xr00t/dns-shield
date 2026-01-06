@@ -1,4 +1,3 @@
-# /path/to/repo/README.md
 # Server Hardening & Monitoring Template
 
 A comprehensive guide for hardening a Linux server against DNS pointing attacks, brute force attempts, and malicious bots. Includes real-time monitoring via n8n and Discord.
